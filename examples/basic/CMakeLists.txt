@@ -1,4 +1,5 @@
-set(SOURCE_FILES main.cpp)
+set(SOURCE_FILES
+  main.cpp)
 add_executable(basic ${SOURCE_FILES})
 
 target_include_directories(basic
