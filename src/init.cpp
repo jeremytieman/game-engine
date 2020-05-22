@@ -28,7 +28,7 @@ namespace DragonGameEngine
         const bool initDearImGui,
         const DGEreshapefunc reshapeFunc,
         const DGEinitfunc initFunc,
-        const DGEmainfunc mainFunc,
+        const DGErenderfunc renderFunc,
         const DGEexitfunc exitFunc)
     {
         glfwSetErrorCallback(error_callback);
@@ -95,7 +95,7 @@ namespace DragonGameEngine
 
         while (!glfwWindowShouldClose(window))
         {
-            mainFunc();
+            renderFunc();
             glfwSwapBuffers(window);
             glfwPollEvents();
         }

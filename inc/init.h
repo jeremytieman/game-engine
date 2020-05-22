@@ -5,7 +5,7 @@
 namespace DragonGameEngine
 {
     typedef void (* DGEinitfunc)();
-    typedef void (* DGEmainfunc)();
+    typedef void (* DGErenderfunc)();
     typedef void (* DGEexitfunc)();
     typedef void (* DGEreshapefunc)(int width, int height);
 
@@ -15,7 +15,7 @@ namespace DragonGameEngine
         const bool initDearImGui,
         const DGEreshapefunc reshapeFunc,
         const DGEinitfunc initFunc,
-        const DGEmainfunc mainFunc,
+        const DGErenderfunc renderFunc,
         const DGEexitfunc exitFunc);
     void setWindowTitle(const std::string& newTitle);
 }
