@@ -4,8 +4,8 @@ add_executable(basic ${SOURCE_FILES})
 
 target_include_directories(basic
   PRIVATE ${CMAKE_SOURCE_DIR}/inc/
-  PRIVATE ${PROJECT_BINARY_DIR}/external/glfw-src/include/
-  PRIVATE ${PROJECT_BINARY_DIR}/external/dear-imgui-src/)
+  PRIVATE ${PROJECT_BINARY_DIR}/vendor/glfw-src/include/
+  PRIVATE ${PROJECT_BINARY_DIR}/vendor/dear-imgui-src/)
 
 target_link_libraries(basic PRIVATE glfw PRIVATE game_engine)
 set_target_properties(basic PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/examples)

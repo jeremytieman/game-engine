@@ -2,7 +2,7 @@ project(dear-imgui-download NONE)
 
 include(ExternalProject)
 ExternalProject_Add(dear-imgui-download
-  GIT_REPOSITORY    https://github.com/ocornut/imgui.git
+  GIT_REPOSITORY    https://github.com/jeremytieman/imgui.git
   GIT_TAG           docking
   SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/dear-imgui-src"
   BINARY_DIR        ""
