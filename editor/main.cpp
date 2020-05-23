@@ -2,9 +2,13 @@
 #include <GLFW/glfw3.h>
 #include <filesystem>
 #include <imgui.h>
+#include <ImGuiFileBrowser.h>
 #include <init.h>
 #include <3dmath.h>
 #include <ogl.h>
+#include <string>
+#include <texture.h>
+#include <unordered_map>
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 
@@ -18,14 +22,17 @@ int currentWidth = 600;
 int currentHeight = 600;
 
 DragonGameEngine::Math::Matrix ProjectionMatrix;
-//DragonGameEngine::Math::Matrix ViewMatrix;
-//DragonGameEngine::Math::Matrix ModelMatrix;
 
 GLuint ProjectionMatrixUniformLocation;
 
 GLuint ShaderIds[3] = { 0 };
 
-bool showImageWindow = false;
+bool showGeneratedImageWindow = false;
+
+imgui_addons::ImGuiFileBrowser file_dialog;
+
+// Loaded images
+std::unordered_map<std::string, DGE::Texture::Texture> textures;
 
 void exitCallback();
 void initCallback();
@@ -63,19 +70,21 @@ void initCallback()
   reshapeCallback(currentWidth, currentHeight);
 }
 
-bool drawMainMenu()
+void drawMainMenu()
 {
-  if(!ImGui::BeginMainMenuBar()) return false;
-  //if(!ImGui::BeginMenu("File")) return false;
-  //ImGui::EndMenu();
-  if(!ImGui::BeginMenu("Image")) return false;
-  ImGui::MenuItem("Image Window", nullptr, &showImageWindow);
-  ImGui::EndMenu();
-  ImGui::EndMenuBar();
-  return true;
+  if(ImGui::BeginMainMenuBar())
+  {
+    if(ImGui::BeginMenu("Image"))
+    {
+      ImGui::MenuItem("Display Generated Image", nullptr, &showGeneratedImageWindow);
+      ImGui::EndMenu();
+    }
+
+    ImGui::EndMenuBar();
+  }
 }
 
-void drawImageWindow()
+void generateImage()
 {
   constexpr unsigned int width = 128;
   constexpr unsigned int height = 128;
@@ -98,10 +107,39 @@ void drawImageWindow()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   delete data;
+  DGE::Texture::Texture t(width, height, tex);
+  textures["generated"] = t;
+}
 
-  ImGui::Begin("Image Window", &showImageWindow);
-  ImGui::Image((void*)(intptr_t)tex, ImVec2(width, height));
-  ImGui::End();
+void drawGeneratedImageWindow()
+{
+  bool open = false;
+  if(!textures.count("generated")) generateImage();
+  auto t = textures["generated"];
+  if(ImGui::Begin("Image Window", &showGeneratedImageWindow, ImGuiWindowFlags_MenuBar))
+  {
+    if(ImGui::BeginMenuBar())
+    {
+      if(ImGui::BeginMenu("File"))
+      {
+        if(ImGui::MenuItem("Open")) open = true;
+        ImGui::EndMenu();
+      }
+
+      ImGui::EndMenuBar();
+    }
+
+    if(open) ImGui::OpenPopup("Open File");
+
+    if(file_dialog.showFileDialog("Open File", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), "*.*"))
+    {
+        //std::cout << file_dialog.selected_fn << std::endl;      // The name of the selected file or directory in case of Select Directory dialog mode
+        //std::cout << file_dialog.selected_path << std::endl;    // The absolute path to the selected file
+    }
+
+    ImGui::Image((void*)(intptr_t)t.textureId, ImVec2(static_cast<float>(t.width), static_cast<float>(t.height)));
+    ImGui::End();
+  }
 }
 
 void renderCallback()
@@ -112,7 +150,7 @@ void renderCallback()
   ImGui_ImplGlfw_NewFrame();
   ImGui::NewFrame();
   drawMainMenu();
-  if(showImageWindow) drawImageWindow();
+  if(showGeneratedImageWindow) drawGeneratedImageWindow();
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
