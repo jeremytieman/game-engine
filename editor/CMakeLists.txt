@@ -9,6 +9,14 @@ target_include_directories(editor
   PRIVATE ${PROJECT_BINARY_DIR}/_deps/imgui-file-browser-src/FileBrowser/
   PRIVATE ${PROJECT_BINARY_DIR}/_deps/stb-src/)
 
+if(CMAKE_CONFIGURATION_TYPES)
+  add_compile_definitions($<$<CONFIG:Debug>:NDEBUG>)
+else()
+  if(CMAKE_BUILD_TYPE == "Debug")
+    add_compile_definitions(NDEBUG)
+  endif()
+endif()
+
 if (MSVC)
   add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
   add_compile_options(/W4 /WX)
