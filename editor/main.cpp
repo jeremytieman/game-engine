@@ -6,6 +6,7 @@
 #include <init.h>
 #include <3dmath.h>
 #include <ogl.h>
+#include <stb_image.h>
 #include <string>
 #include <texture.h>
 #include <unordered_map>
@@ -28,8 +29,11 @@ GLuint ProjectionMatrixUniformLocation;
 GLuint ShaderIds[3] = { 0 };
 
 bool showGeneratedImageWindow = false;
+bool showLoadedImageWindow = false;
+bool openLoadImageFileDialog = false;
+bool errorLoadingImageFile = false;
 
-imgui_addons::ImGuiFileBrowser file_dialog;
+imgui_addons::ImGuiFileBrowser loadImageFileDialog;
 
 // Loaded images
 std::unordered_map<std::string, DGE::Texture::Texture> textures;
@@ -77,6 +81,17 @@ void drawMainMenu()
     if(ImGui::BeginMenu("Image"))
     {
       ImGui::MenuItem("Display Generated Image", nullptr, &showGeneratedImageWindow);
+
+      if(showLoadedImageWindow)
+      {
+        ImGui::MenuItem("Load Image", nullptr, &showLoadedImageWindow);
+      }
+      else
+      {
+        if(ImGui::MenuItem("Load Image", nullptr)) openLoadImageFileDialog = true;
+      }
+      
+      
       ImGui::EndMenu();
     }
 
@@ -111,34 +126,80 @@ void generateImage()
   textures["generated"] = t;
 }
 
+bool loadImage(const std::string& absoluteFilePath)
+{
+  int width = 0;
+  int height = 0;
+  int channels = 0;
+  unsigned char* data = stbi_load(absoluteFilePath.c_str(), &width, &height, &channels, 4);
+  if(nullptr == data) return false;
+  GLuint tex;
+  glGenTextures(1, &tex);
+  glBindTexture(GL_TEXTURE_2D, tex);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  stbi_image_free(data);
+  DGE::Texture::Texture t(width, height, tex);
+  textures["loaded"] = t;
+  return true;
+}
+
 void drawGeneratedImageWindow()
 {
-  bool open = false;
   if(!textures.count("generated")) generateImage();
   auto t = textures["generated"];
-  if(ImGui::Begin("Image Window", &showGeneratedImageWindow, ImGuiWindowFlags_MenuBar))
+
+  if(ImGui::Begin("Generated Image Window", &showGeneratedImageWindow, ImGuiWindowFlags_MenuBar))
   {
-    if(ImGui::BeginMenuBar())
-    {
-      if(ImGui::BeginMenu("File"))
-      {
-        if(ImGui::MenuItem("Open")) open = true;
-        ImGui::EndMenu();
-      }
-
-      ImGui::EndMenuBar();
-    }
-
-    if(open) ImGui::OpenPopup("Open File");
-
-    if(file_dialog.showFileDialog("Open File", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), "*.*"))
-    {
-        //std::cout << file_dialog.selected_fn << std::endl;      // The name of the selected file or directory in case of Select Directory dialog mode
-        //std::cout << file_dialog.selected_path << std::endl;    // The absolute path to the selected file
-    }
-
     ImGui::Image((void*)(intptr_t)t.textureId, ImVec2(static_cast<float>(t.width), static_cast<float>(t.height)));
     ImGui::End();
+  }
+}
+
+void drawLoadedImageWindow()
+{
+  auto t = textures["loaded"];
+
+  if(ImGui::Begin("Loaded Image Window", &showLoadedImageWindow))
+  {
+    ImGui::Image((void*)(intptr_t)t.textureId, ImVec2(static_cast<float>(t.width), static_cast<float>(t.height)));
+    ImGui::End();
+  }
+}
+
+void loadAndDrawImageWindow()
+{
+  if(openLoadImageFileDialog)
+  {
+    ImGui::OpenPopup("Load Image");
+    openLoadImageFileDialog = false;
+  }
+
+  if(loadImageFileDialog.showFileDialog("Load Image", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310), ".jpg,.png,.bmp,.tga,.gif"))
+  {
+      if(!loadImage(loadImageFileDialog.selected_path)) errorLoadingImageFile = true;
+      else showLoadedImageWindow = true;
+  }
+
+  if(errorLoadingImageFile)
+  {
+    ImGui::OpenPopup("Image Loading Error");
+
+    if (ImGui::BeginPopupModal("Image Loading Error", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+    {
+      ImGui::Text("Error loading image file");
+      
+      if(ImGui::Button("OK"))
+      {
+        errorLoadingImageFile = false;
+        openLoadImageFileDialog = true;
+      }
+    }
+
+    ImGui::EndPopup();
   }
 }
 
@@ -151,6 +212,8 @@ void renderCallback()
   ImGui::NewFrame();
   drawMainMenu();
   if(showGeneratedImageWindow) drawGeneratedImageWindow();
+  loadAndDrawImageWindow();
+  if(showLoadedImageWindow) drawLoadedImageWindow();
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -18,4 +18,10 @@ FetchContent_Declare(
   GIT_TAG imgui-v1.77-fix
 )
 
-FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser)
+FetchContent_Declare(
+  stb
+  GIT_REPOSITORY https://github.com/jeremytieman/stb.git
+  GIT_TAG master
+)
+
+FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser stb)
