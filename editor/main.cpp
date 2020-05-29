@@ -32,6 +32,7 @@ bool showGeneratedImageWindow = false;
 bool showLoadedImageWindow = false;
 bool openLoadImageFileDialog = false;
 bool errorLoadingImageFile = false;
+bool openLoadMemoryFileDialog = false;
 
 imgui_addons::ImGuiFileBrowser loadImageFileDialog;
 
@@ -39,16 +40,14 @@ imgui_addons::ImGuiFileBrowser loadImageFileDialog;
 std::unordered_map<std::string, DGE::Texture::Texture> textures;
 
 void exitCallback();
-void initCallback();
+void initCallback(int width, int height);
 void renderCallback();
 void reshapeCallback(int width, int height);
 
 int main(int argc, char** argv)
 {
   exe = argv[0];
-  return DGE::init(currentWidth,
-    currentHeight,
-    windowTitle,
+  return DGE::initMaximized(windowTitle,
     true,
     reshapeCallback,
     initCallback,
@@ -58,7 +57,7 @@ int main(int argc, char** argv)
 
 void exitCallback() {}
 
-void initCallback()
+void initCallback(int width, int height)
 {
   glGetError();
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -71,7 +70,7 @@ void initCallback()
   glFrontFace(GL_CCW);
   DragonGameEngine::OGL::ExitOnGLError("ERROR: Could not set OpenGL culling options");
 
-  reshapeCallback(currentWidth, currentHeight);
+  reshapeCallback(width, height);
 }
 
 void drawMainMenu()
@@ -92,6 +91,12 @@ void drawMainMenu()
       }
       
       
+      ImGui::EndMenu();
+    }
+
+    if(ImGui::BeginMenu("Memory"))
+    {
+      if(ImGui::MenuItem("Open File...")) openLoadMemoryFileDialog = true;
       ImGui::EndMenu();
     }
 
@@ -203,6 +208,11 @@ void loadAndDrawImageWindow()
   }
 }
 
+void loadAndDisplayMemory()
+{
+
+}
+
 void renderCallback()
 {
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -214,6 +224,7 @@ void renderCallback()
   if(showGeneratedImageWindow) drawGeneratedImageWindow();
   loadAndDrawImageWindow();
   if(showLoadedImageWindow) drawLoadedImageWindow();
+  loadAndDisplayMemory();
 
   ImGui::Render();
   ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -125,7 +125,7 @@ void CreateCube()
   glBindVertexArray(0);
 }
 
-void initCallback()
+void initCallback(int width, int height)
 {
   glGetError();
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -144,7 +144,7 @@ void initCallback()
   TranslateMatrix(ViewMatrix, 0, 0, -2);
 
   CreateCube();
-  reshapeCallback(currentWidth, currentHeight);
+  reshapeCallback(width, height);
 }
 
 bool createMainMenu()
