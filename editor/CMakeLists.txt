@@ -7,7 +7,8 @@ target_include_directories(editor
   PRIVATE ${CMAKE_SOURCE_DIR}/inc/
   PRIVATE ${PROJECT_BINARY_DIR}/_deps/dear-imgui-src/
   PRIVATE ${PROJECT_BINARY_DIR}/_deps/imgui-file-browser-src/FileBrowser/
-  PRIVATE ${PROJECT_BINARY_DIR}/_deps/stb-src/)
+  PRIVATE ${PROJECT_BINARY_DIR}/_deps/stb-src/
+  PRIVATE ${PROJECT_BINARY_DIR}/_deps/imgui-memory-editor-src/)
 
 if(CMAKE_CONFIGURATION_TYPES)
   add_compile_definitions($<$<CONFIG:Debug>:NDEBUG>)

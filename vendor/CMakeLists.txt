@@ -24,4 +24,10 @@ FetchContent_Declare(
   GIT_TAG master
 )
 
-FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser stb)
+FetchContent_Declare(
+  imgui-memory-editor
+  GIT_REPOSITORY https://github.com/jeremytieman/imgui_club.git
+  GIT_TAG master
+)
+
+FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser stb imgui-memory-editor)
