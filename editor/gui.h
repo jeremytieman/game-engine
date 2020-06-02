@@ -2,6 +2,7 @@
 
 #include <array>
 #include <imgui.h>
+#include <init.h>
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 #include <ImGuiFileBrowser.h>
@@ -71,6 +72,12 @@ namespace editor
   {
     if(ImGui::BeginMainMenuBar())
     {
+      if(ImGui::BeginMenu("File"))
+      {
+        if(ImGui::MenuItem("Exit")) DGE::setWindowShouldClose();
+        ImGui::EndMenu();
+      }
+
       if(ImGui::BeginMenu("Image"))
       {
         ImGui::MenuItem("Display Generated Image", nullptr, &showGeneratedImageWindow);

@@ -13,7 +13,7 @@ namespace fs = std::filesystem;
 
 fs::path exe;
 
-std::string windowTitle = "OpenGL Demo";
+std::string windowTitle = "Dragon Game Engine";
 int currentWidth = 600;
 int currentHeight = 600;
 

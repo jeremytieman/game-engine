@@ -26,4 +26,5 @@ namespace DragonGameEngine
       const DGEexitfunc exitFunc);
 
     void setWindowTitle(const std::string& newTitle);
+    void setWindowShouldClose();
 }

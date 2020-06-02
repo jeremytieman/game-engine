@@ -157,4 +157,9 @@ namespace DragonGameEngine
   {
     glfwSetWindowTitle(window, newTitle.c_str());
   }
+
+  void setWindowShouldClose()
+  {
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+  }
 }
