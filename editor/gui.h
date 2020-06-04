@@ -20,6 +20,14 @@ namespace editor
   static char* const generatedImageKey = "generated";
   static char* const loadedImageKey = "loaded";
 
+  bool showEmulator = false;
+  unsigned int systemSelected = 0;
+  bool openROMImageFileDialog = false;
+  std::vector<char> emulatorROM;
+  bool errorLoadingEmulatorROM = false;
+  bool showEmulatorROMWindow = false;
+  std::string emulatorROMFileName;
+
   bool showGeneratedImageWindow = false;
   bool showLoadedImageWindow = false;
   bool openLoadImageFileDialog = false;
@@ -34,6 +42,7 @@ namespace editor
   MemoryEditor memEditor;
 
   void drawMainMenu();
+  void drawEmulator();
   void drawGeneratedImageWindow();
   void generateImage();
   void drawLoadImagePopup();
@@ -48,6 +57,7 @@ namespace editor
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     drawMainMenu();
+    if(showEmulator) drawEmulator();
     if(showGeneratedImageWindow) drawGeneratedImageWindow();
     drawLoadImagePopup();
     if(showLoadedImageWindow) drawLoadedImageWindow();
@@ -78,6 +88,12 @@ namespace editor
         ImGui::EndMenu();
       }
 
+      if(ImGui::BeginMenu("Emulate"))
+      {
+        ImGui::MenuItem("Show Emulator", nullptr, &showEmulator);
+        ImGui::EndMenu();
+      }
+
       if(ImGui::BeginMenu("Image"))
       {
         ImGui::MenuItem("Display Generated Image", nullptr, &showGeneratedImageWindow);
@@ -94,6 +110,84 @@ namespace editor
       }
 
       ImGui::EndMenuBar();
+    }
+  }
+
+  void drawEmulator()
+  {
+    if(ImGui::Begin("Emulator", 0, ImGuiWindowFlags_MenuBar))
+    {
+      if(ImGui::BeginMenuBar())
+      {
+        if(ImGui::BeginMenu("File"))
+        {
+          if(ImGui::MenuItem("Open")) openROMImageFileDialog = true;
+          ImGui::EndMenu();
+        }
+
+        ImGui::EndMenuBar();
+      }
+
+      const static char* const loadROMFileDialogPopupName = "Open ROM Image";
+
+      if(openROMImageFileDialog)
+      {
+        ImGui::OpenPopup(loadROMFileDialogPopupName);
+        openROMImageFileDialog = false;
+      }
+
+      if(loadFileDialog.showFileDialog("Open ROM Image", imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+      {
+        if(!editor::loadFile(loadFileDialog.selected_path, emulatorROM)) errorLoadingEmulatorROM = true;
+        else
+        {
+          emulatorROMFileName = loadFileDialog.selected_path;
+          showEmulatorROMWindow = true;
+        }
+      }
+
+      if(errorLoadingEmulatorROM)
+      {
+        static const char* const errorPopupName = "ROM Loading Error";
+        ImGui::OpenPopup(errorPopupName);
+
+        if (ImGui::BeginPopupModal(errorPopupName, nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+        {
+          ImGui::Text("Error loading ROM file");
+          
+          if(ImGui::Button("OK"))
+          {
+            errorLoadingEmulatorROM = false;
+            openROMImageFileDialog = true;
+          }
+        }
+      }
+
+      const char* systems[] = { "CHIP8", "SCHIP8" };
+
+      if(ImGui::BeginCombo("Systems", systems[systemSelected]))
+      {
+        for (int i = 0; i < IM_ARRAYSIZE(systems); ++i)
+        {
+            const bool selected = (systemSelected == i);
+            if (ImGui::Selectable(systems[i], selected)) systemSelected = i;
+            if (selected) ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+      }
+
+      ImGui::LabelText("ROM File Name", emulatorROMFileName.c_str());
+      ImGui::End();
+    }
+
+    if(!emulatorROM.empty())
+    {
+      if(ImGui::Begin("Memory Editor"))
+      {
+        memEditor.DrawContents(emulatorROM.data(), emulatorROM.size());
+        ImGui::End();
+      }
     }
   }
 
