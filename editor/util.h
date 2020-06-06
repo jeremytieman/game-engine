@@ -8,7 +8,7 @@ namespace fs = std::filesystem;
 
 namespace editor
 {
-  bool loadFile(const std::string& absoluteFilePath, std::vector<char>& v)
+  bool loadFile(const std::string& absoluteFilePath, std::vector<unsigned char>& v)
   {
     fs::path p = absoluteFilePath;
     auto status = fs::status(p);
@@ -20,7 +20,7 @@ namespace editor
     if(!ifs.is_open()) return false;
     v.clear();
     v.resize(size);
-    ifs.read(v.data(), size);
+    ifs.read(reinterpret_cast<char*>(v.data()), size);
     return true;
   }
 }

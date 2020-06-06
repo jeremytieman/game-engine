@@ -30,4 +30,8 @@ FetchContent_Declare(
   GIT_TAG master
 )
 
-FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser stb imgui-memory-editor)
+FetchContent_Declare(
+  chip-emulators
+  GIT_REPOSITORY https://github.com/jeremytieman/chip-emulators.git
+  GIT_TAG master
+)

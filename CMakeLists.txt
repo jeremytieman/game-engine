@@ -1,8 +1,14 @@
-cmake_minimum_required (VERSION 2.6)
-project (OpenGLDemo LANGUAGES CXX)
-set (CMAKE_CXX_STANDARD 17)
+cmake_minimum_required(VERSION 3.0)
+project(game-engine VERSION 0.0.1 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(vendor)
 add_subdirectory(src)
-add_subdirectory(editor)
-add_subdirectory(examples)
+
+option(GAME_ENGINE_BUILD_EDITOR "Build the game engine editor" ON)
+
+if(GAME_ENGINE_BUILD_EDITOR)
+  add_subdirectory(editor)
+endif()
+
+#add_subdirectory(examples)

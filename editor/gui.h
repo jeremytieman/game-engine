@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <chip8.h>
 #include <imgui.h>
 #include <init.h>
 #include <examples/imgui_impl_glfw.h>
@@ -9,6 +10,7 @@
 #include <imgui_memory_editor/imgui_memory_editor.h>
 #include <stb_image.h>
 #include <texture.h>
+#include <memory>
 #include <unordered_map>
 
 #include "util.h"
@@ -20,26 +22,30 @@ namespace editor
   static char* const generatedImageKey = "generated";
   static char* const loadedImageKey = "loaded";
 
+  // Emulator
   bool showEmulator = false;
-  unsigned int systemSelected = 0;
+  const char* systemSelected = nullptr;
   bool openROMImageFileDialog = false;
-  std::vector<char> emulatorROM;
+  std::vector<unsigned char> emulatorROM;
   bool errorLoadingEmulatorROM = false;
   bool showEmulatorROMWindow = false;
-  std::string emulatorROMFileName;
+  fs::path emulatorROMFileName;
+  std::unique_ptr<CodexMachina::ChipEmulator> ce; 
 
   bool showGeneratedImageWindow = false;
   bool showLoadedImageWindow = false;
   bool openLoadImageFileDialog = false;
-  bool openLoadMemoryFileDialog = false;
   bool errorLoadingImageFile = false;
-  bool errorLoadingMemoryFile = false;
-  bool showLoadedMemoryWindow = false;
+
+  bool openLoadHexEditorFileDialog = false;
+  bool errorLoadingHexEditorFile = false;
+  bool showHexEditorFileMemoryWindow = false;
+  std::vector<unsigned char> hexEditorFileMemory;
 
   std::unordered_map<char*, size_t> textures;
-  std::vector<char> v;
   imgui_addons::ImGuiFileBrowser loadFileDialog;
-  MemoryEditor memEditor;
+  MemoryEditor emulatorMemEditor;
+  MemoryEditor fileMemEditor;
 
   void drawMainMenu();
   void drawEmulator();
@@ -48,8 +54,8 @@ namespace editor
   void drawLoadImagePopup();
   bool loadImage(const std::string& absoluteFilePath);
   void drawLoadedImageWindow();
-  void drawLoadMemoryPopup();
-  void drawLoadedMemoryWindow();
+  void drawLoadHexEditorFilePopup();
+  void drawLoadedHexEditorFileWindow();
 
   void drawGui()
   {
@@ -61,8 +67,8 @@ namespace editor
     if(showGeneratedImageWindow) drawGeneratedImageWindow();
     drawLoadImagePopup();
     if(showLoadedImageWindow) drawLoadedImageWindow();
-    drawLoadMemoryPopup();
-    if(showLoadedMemoryWindow) drawLoadedMemoryWindow();
+    drawLoadHexEditorFilePopup();
+    if(showHexEditorFileMemoryWindow) drawLoadedHexEditorFileWindow();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -103,9 +109,9 @@ namespace editor
         ImGui::EndMenu();
       }
 
-      if(ImGui::BeginMenu("Memory"))
+      if(ImGui::BeginMenu("File Hex Editor"))
       {
-        if(ImGui::MenuItem("Open File...")) openLoadMemoryFileDialog = true;
+        if(ImGui::MenuItem("Open File...")) openLoadHexEditorFileDialog = true;
         ImGui::EndMenu();
       }
 
@@ -115,7 +121,17 @@ namespace editor
 
   void drawEmulator()
   {
-    if(ImGui::Begin("Emulator", 0, ImGuiWindowFlags_MenuBar))
+    const auto mainViewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(mainViewport->GetWorkPos().x + 10, mainViewport->GetWorkPos().y + 10));
+    static const char* labelText = "ROM File Name";
+
+    if(!emulatorROMFileName.empty())
+    {
+      ImGui::SetNextWindowSize(ImVec2(400, 100));
+    }
+    else ImGui::SetNextWindowSize(ImVec2(200, 100));
+
+    if(ImGui::Begin("Emulator", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize))
     {
       if(ImGui::BeginMenuBar())
       {
@@ -141,7 +157,8 @@ namespace editor
         if(!editor::loadFile(loadFileDialog.selected_path, emulatorROM)) errorLoadingEmulatorROM = true;
         else
         {
-          emulatorROMFileName = loadFileDialog.selected_path;
+          emulatorROMFileName = fs::path(loadFileDialog.selected_path);
+          if(ce) ce->loadMemory(emulatorROM, 0x200);
           showEmulatorROMWindow = true;
         }
       }
@@ -163,29 +180,49 @@ namespace editor
         }
       }
 
-      const char* systems[] = { "CHIP8", "SCHIP8" };
-
-      if(ImGui::BeginCombo("Systems", systems[systemSelected]))
+      if(ImGui::BeginCombo("Systems", systemSelected))
       {
-        for (int i = 0; i < IM_ARRAYSIZE(systems); ++i)
+        for (auto emulatorName : CodexMachina::emulators())
         {
-            const bool selected = (systemSelected == i);
-            if (ImGui::Selectable(systems[i], selected)) systemSelected = i;
-            if (selected) ImGui::SetItemDefaultFocus();
+          const bool selected = (emulatorName == systemSelected);
+          if(ImGui::Selectable(emulatorName, selected))
+          {
+            systemSelected = emulatorName;
+            ce = std::make_unique<CodexMachina::Chip8>();
+            if(!emulatorROM.empty()) ce->loadMemory(emulatorROM, 0x200);
+          }
+          if(selected) ImGui::SetItemDefaultFocus();
         }
 
         ImGui::EndCombo();
       }
 
-      ImGui::LabelText("ROM File Name", emulatorROMFileName.c_str());
+      if(!emulatorROMFileName.empty())
+      {
+        ImGui::LabelText(labelText, emulatorROMFileName.filename().string().c_str());
+      }
+
       ImGui::End();
     }
 
-    if(!emulatorROM.empty())
+    if(ce && !emulatorROM.empty())
     {
-      if(ImGui::Begin("Memory Editor"))
+      ImGui::SetNextWindowPos(ImVec2(mainViewport->GetWorkPos().x + 10, mainViewport->GetWorkPos().y + 120));
+      ImGui::SetNextWindowSize(ImVec2(400, 400));
+
+      if(ImGui::Begin("Emulator State", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
       {
-        memEditor.DrawContents(emulatorROM.data(), emulatorROM.size());
+        ImGui::LabelText("Program Counter", std::to_string(ce->getPC()).c_str());
+        ImGui::LabelText("Timing", std::to_string(ce->getTiming()).c_str());
+        ImGui::End();
+      }
+
+      ImGui::SetNextWindowPos(ImVec2(mainViewport->GetWorkPos().x + 10, mainViewport->GetWorkPos().y + 530));
+      ImGui::SetNextWindowSize(ImVec2(400, 400));
+
+      if(ImGui::Begin("Emulator Memory Editor", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize))
+      {
+        emulatorMemEditor.DrawContents(ce->getMemory().data(), ce->getMemory().size());
         ImGui::End();
       }
     }
@@ -280,23 +317,23 @@ namespace editor
     }
   }
 
-  void drawLoadMemoryPopup()
+  void drawLoadHexEditorFilePopup()
   {
-    static const char* const loadMemoryFilePopupName = "Load Memory File";
+    static const char* const loadHexEditorFilePopupName = "Load Memory File";
 
-    if(openLoadMemoryFileDialog)
+    if(openLoadHexEditorFileDialog)
     {
-      ImGui::OpenPopup(loadMemoryFilePopupName);
-      openLoadMemoryFileDialog = false;
+      ImGui::OpenPopup(loadHexEditorFilePopupName);
+      openLoadHexEditorFileDialog = false;
     }
 
-    if(loadFileDialog.showFileDialog(loadMemoryFilePopupName, imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
+    if(loadFileDialog.showFileDialog(loadHexEditorFilePopupName, imgui_addons::ImGuiFileBrowser::DialogMode::OPEN, ImVec2(700, 310)))
     {
-      if(!editor::loadFile(loadFileDialog.selected_path, v)) errorLoadingMemoryFile = true;
-      else showLoadedMemoryWindow = true;
+      if(!editor::loadFile(loadFileDialog.selected_path, hexEditorFileMemory)) errorLoadingHexEditorFile = true;
+      else showHexEditorFileMemoryWindow = true;
     }
 
-    if(errorLoadingMemoryFile)
+    if(errorLoadingHexEditorFile)
     {
       static const char* const errorPopupName = "Memory Loading Error";
       ImGui::OpenPopup(errorPopupName);
@@ -307,8 +344,8 @@ namespace editor
         
         if(ImGui::Button("OK"))
         {
-          errorLoadingMemoryFile = false;
-          openLoadMemoryFileDialog = true;
+          errorLoadingHexEditorFile = false;
+          openLoadHexEditorFileDialog = true;
         }
       }
 
@@ -316,11 +353,11 @@ namespace editor
     }
   }
 
-  void drawLoadedMemoryWindow()
+  void drawLoadedHexEditorFileWindow()
   {
-    if(ImGui::Begin("Memory Editor", &showLoadedMemoryWindow))
+    if(ImGui::Begin("File Hex Editor", &showHexEditorFileMemoryWindow))
     {
-      memEditor.DrawContents(v.data(), v.size());
+      fileMemEditor.DrawContents(hexEditorFileMemory.data(), hexEditorFileMemory.size());
       ImGui::End();
     }
   }

@@ -1,19 +1,24 @@
+project(editor VERSION 0.0.1 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+
+include(FetchContent)
+FetchContent_MakeAvailable(glfw dear-imgui imgui-file-browser stb imgui-memory-editor chip-emulators)
+
 set(SOURCE_FILES
-  ${PROJECT_BINARY_DIR}/_deps/imgui-file-browser-src/FileBrowser/ImGuiFileBrowser.cpp
+  ${PROJECT_BINARY_DIR}/../_deps/imgui-file-browser-src/FileBrowser/ImGuiFileBrowser.cpp
   main.cpp)
 add_executable(editor ${SOURCE_FILES})
 
 target_include_directories(editor
-  PRIVATE ${CMAKE_SOURCE_DIR}/inc/
-  PRIVATE ${PROJECT_BINARY_DIR}/_deps/dear-imgui-src/
-  PRIVATE ${PROJECT_BINARY_DIR}/_deps/imgui-file-browser-src/FileBrowser/
-  PRIVATE ${PROJECT_BINARY_DIR}/_deps/stb-src/
-  PRIVATE ${PROJECT_BINARY_DIR}/_deps/imgui-memory-editor-src/)
+  PRIVATE ${PROJECT_BINARY_DIR}/../_deps/dear-imgui-src/
+    ${PROJECT_BINARY_DIR}/../_deps/imgui-file-browser-src/FileBrowser/
+    ${PROJECT_BINARY_DIR}/../_deps/stb-src/
+    ${PROJECT_BINARY_DIR}/../_deps/imgui-memory-editor-src/)
 
 if(CMAKE_CONFIGURATION_TYPES)
-  add_compile_definitions($<$<CONFIG:Debug>:NDEBUG>)
+  add_compile_definitions($<$<NOT:$<CONFIG:Debug>>:NDEBUG>)
 else()
-  if(CMAKE_BUILD_TYPE == "Debug")
+  if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(NDEBUG)
   endif()
 endif()
@@ -30,5 +35,5 @@ add_compile_definitions(STBI_ONLY_BMP)
 add_compile_definitions(STBI_ONLY_TGA)
 add_compile_definitions(STBI_ONLY_GIF)
 
-target_link_libraries(editor PRIVATE glfw PRIVATE game_engine)
-set_target_properties(editor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+target_link_libraries(editor PRIVATE glfw game-library ChipEmulators)
+set_target_properties(editor PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/../bin)
