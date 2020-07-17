@@ -10,22 +10,22 @@ namespace DragonGameEngine::Texture
   {
     public:
       Texture() {}
-      Texture(const unsigned int width, const unsigned int height, const GLuint textureId) :
+      Texture(const size_t width, const size_t height, const GLuint textureId) :
         width(width), height(height), textureId(textureId) {}
-      unsigned int width;
-      unsigned int height;
+      size_t width;
+      size_t height;
       GLuint textureId;
   };
 
   std::unordered_map<size_t, Texture> textures;
 
-  size_t createTexture(const int width, const int height, const unsigned char* const data)
+  size_t createTexture(const size_t width, const size_t height, const unsigned char* const data)
   {
     GLuint tex;
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
     // TODO: Add error checking here
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, static_cast<GLsizei>(width), static_cast<GLsizei>(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
