@@ -8,6 +8,16 @@ namespace fs = std::filesystem;
 
 namespace editor
 {
+  // Allows enum classes to be used as keys for unordered_map
+  struct EnumClassHash
+  {
+      template <typename T>
+      std::size_t operator()(T t) const
+      {
+          return static_cast<std::size_t>(t);
+      }
+  };
+
   bool loadFile(const std::string& absoluteFilePath, std::vector<unsigned char>& v)
   {
     fs::path p = absoluteFilePath;
