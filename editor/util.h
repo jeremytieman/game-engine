@@ -4,10 +4,12 @@
 #include <string>
 #include <vector>
 
-namespace fs = std::filesystem;
+#include "util.h"
 
-namespace editor
+namespace editor::util
 {
+  namespace fs = std::filesystem;
+
   // Allows enum classes to be used as keys for unordered_map
   struct EnumClassHash
   {
