@@ -61,7 +61,7 @@ namespace editor::image
   void generateImage()
   {
     static constexpr unsigned int width = 128;
-    static constexpr unsigned int height = 128;
+    static constexpr unsigned int height = 64;
     static constexpr unsigned int channels = 4;
     std::array<unsigned char, width * height * channels> data;
 

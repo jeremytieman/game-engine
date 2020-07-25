@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -34,5 +35,27 @@ namespace editor::util
     v.resize(size);
     ifs.read(reinterpret_cast<char*>(v.data()), size);
     return true;
+  }
+
+  void prettyPrintMemoryBlock(const size_t x, const size_t y, const size_t dataSize, const std::vector<unsigned char>& data, std::ostream& out)
+  {
+    const auto rowSize = x * dataSize;
+
+    for(size_t i = 0; i < y; ++i)
+    {
+      const auto yOffset = rowSize * i;
+
+      for(size_t j = 0; j < x; ++j)
+      {
+        const auto xyOffset = yOffset + (j * dataSize);
+
+        for(size_t k = 0; k < dataSize; ++k)
+        {
+          out << "0x" << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(data[xyOffset + k]) << std::nouppercase << std::dec << " ";
+        }
+      }
+
+      out << "\n";
+    }
   }
 }

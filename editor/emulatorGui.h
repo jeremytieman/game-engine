@@ -28,6 +28,7 @@ namespace editor::emulator
   MemoryEditor emulatorMemEditor;
   MemoryEditor emulatorDisplayMemEditor;
   size_t emulatorTextureId;
+  size_t displayZoom = 1;
   imgui_addons::ImGuiFileBrowser loadFileDialog;
 
   void drawEmulatorMainMenu();
@@ -118,7 +119,7 @@ namespace editor::emulator
           if(ImGui::Selectable(emulatorName, selected))
           {
             systemSelected = emulatorName;
-            ce = std::make_unique<CodexMachina::Chip8>();
+            ce = std::make_unique<CodexMachina::Chip8::Chip8>();
             if(!emulatorROM.empty()) ce->loadMemory(emulatorROM, 0x200);
           }
           if(selected) ImGui::SetItemDefaultFocus();
@@ -178,8 +179,36 @@ namespace editor::emulator
 
       if(ImGui::Begin("Emulator Display", &showEmulatorImageWindow, ImGuiWindowFlags_MenuBar))
       {
+        if(ImGui::BeginMenuBar())
+        {
+          if(ImGui::BeginMenu("Zoom"))
+          {
+            if(ImGui::MenuItem("1:1", nullptr, displayZoom == 1)) displayZoom = 1;
+            if(ImGui::MenuItem("2:1", nullptr, displayZoom == 2)) displayZoom = 2;
+            if(ImGui::MenuItem("4:1", nullptr, displayZoom == 4)) displayZoom = 4;
+            if(ImGui::MenuItem("8:1", nullptr, displayZoom == 8)) displayZoom = 8;
+            ImGui::EndMenu();
+          }
+
+          ImGui::EndMenuBar();
+        }
         ImGui::Image((void*)(intptr_t)t.textureId, ImVec2(static_cast<float>(t.width), static_cast<float>(t.height)));
         ImGui::End();
+      }
+
+      ImGui::SetNextWindowPos(ImVec2(mainViewport->GetWorkSize().x - 420, mainViewport->GetWorkPos().y + 10));
+      ImGui::SetNextWindowSize(ImVec2(200, 400));
+
+      if(ImGui::Begin("Stack", nullptr, ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize))
+      {
+        const auto& stack = ce->getStack();
+
+        for(const auto& stackValue : stack)
+        {
+          std::ostringstream sSS;
+          sSS << "0x" << std::uppercase << std::hex << std::setfill('0') << std::setw(2) << stackValue;
+          ImGui::Text(sSS.str().c_str());
+        }
       }
 
       ImGui::SetNextWindowPos(ImVec2(mainViewport->GetWorkSize().x - 210, mainViewport->GetWorkPos().y + 10));
@@ -188,11 +217,9 @@ namespace editor::emulator
       if(ImGui::Begin("Registers", nullptr, ImGuiWindowFlags_NoMouseInputs | ImGuiWindowFlags_NoResize))
       {
         std::vector<const char*> registerNames{ ce->getRegisterNames() };
-        
         std::sort(registerNames.begin(), registerNames.end(), [](const std::string& lhs, const std::string& rhs) {
           return lhs < rhs;
         });
-        
         const auto& registers = ce->getRegisterValues();
 
         for(const auto& registerName : registerNames)
@@ -218,19 +245,36 @@ namespace editor::emulator
 
   void generateChip8Texture(const size_t width, const size_t height, const std::vector<unsigned char>& display)
   {
-    static constexpr unsigned int channels = 4;
-    std::vector<unsigned char> data;
-    data.reserve(channels * display.size());
+    static constexpr size_t channels = 4;
+    static constexpr auto alphaOffset = channels - 1;
+    const auto zoomWidth = channels * displayZoom;
+    std::vector<unsigned char> data(display.size() * zoomWidth * displayZoom);
+    const auto outputRowSize = width * zoomWidth;
 
-    for(const auto& pixel : display)
+    for(size_t h = 0; h < height; ++h)
     {
-      const auto value = (pixel == 1) ? 255 : 0;
-      data.push_back(value);
-      data.push_back(value);
-      data.push_back(value);
-      data.push_back(255);
+      const auto inputHeightOffset = h * width;
+
+      for(size_t w = 0; w < width; ++w)
+      {
+        const auto inputOffset = inputHeightOffset + w;
+        const auto pixel = display[inputOffset];
+        const auto value = (pixel == 1) ? 255 : 0;
+        
+        for (size_t zh = 0; zh < displayZoom; ++zh)
+        {
+          const auto outputRowOffset = ((h * displayZoom) + zh) * outputRowSize;
+
+          for (size_t zw = 0; zw < displayZoom; ++zw)
+          {
+            const auto outputOffset = outputRowOffset + ((w * displayZoom) + zw) * channels;
+            for(size_t c = 0; c < (channels - 1); ++c) data[outputOffset + c] = value;
+            data[outputOffset + alphaOffset] = 255;
+          }
+        }
+      }
     }
 
-    emulatorTextureId = DGE::Texture::createTexture(width, height, data.data());
+    emulatorTextureId = DGE::Texture::createTexture(width * displayZoom, height * displayZoom, data.data());
   }
 }
